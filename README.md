@@ -178,10 +178,14 @@ judged against the expected answer.
 | 3 | What is the role of objections in ending a UVM test? | A component raises an objection before stimulus, drops it when done; the phase/sim ends only after all objections drop. | "Objections control the end of each phase via the `uvm_objection` shared counter; participants raise/drop asynchronously, and when the count hits zero the 'all dropped' condition ends the phase." Cited End of Test Mechanisms. | Relevant (4 of 5 from the right chapter) | **Accurate** |
 | 4 | What is a UVM sequence and how does it relate to a sequence item and a sequencer? | A sequence generates a stream of sequence_items; it runs on a sequencer that arbitrates and hands items to the driver via the `get_next_item`/`item_done` handshake. | "A sequence is an OO transaction-level stimulus mechanism that sends sequence_items to a driver via a sequencer; the sequencer arbitrates; a sequence_item carries the info for a pin-level transaction." (Relationship correct; TLM handshake not named.) Cited UVM Basics + Sequences. | Relevant (sim up to 0.78) | **Accurate** |
 | 5 | What does the UVM RAL provide, and what is the adapter for? | RAL models the DUT's registers/fields for abstract read/write; the adapter converts abstract register ops into bus transactions (predictor keeps the model in sync). | "RAL tracks register content and is a convenience layer for accessing registers/memory; the adapter bidirectionally translates generic register sequence_items to/from VIP bus items and extends `uvm_reg_adapter`." (Predictor not mentioned.) Cited Register Abstraction Level. | Relevant (top 3 from the right chapter) | **Accurate** |
+| 6 | What is UVM? *(extra probe — short/generic query, see Failure Case Analysis)* | A definition: UVM is a standardized SystemVerilog class library / methodology for building reusable, modular, transaction-level testbenches. | **"I don't have enough information on that."** — declined with no sources, even though the entire corpus is about UVM. The top-5 were all UVM Connect Primer fragments (tool requirements, command API, license text); no definitional chunk was retrieved. | **Off-target** (best sim 0.588, but every hit was the over-represented primer, not UVM Basics) | **Inaccurate** (unable to answer) |
 
-**Summary:** 4 of 5 accurate, 1 partially accurate. Every answer was grounded and
-correctly attributed; no answer contained invented APIs. The partial result (Q1)
-and the dedicated failure case below are the honest limits of the system.
+**Summary:** Of the 5 planning questions, 4 accurate and 1 partially accurate;
+every answer was grounded and correctly attributed, and no answer contained
+invented APIs. Row 6 is an additional probe I added to surface a concrete
+failure: a short, generic query that retrieval handles poorly (analyzed in full
+below). The partial result (Q1) and this failure case are the honest limits of
+the system.
 
 **Retrieval quality:** Relevant / Partially relevant / Off-target
 **Response accuracy:** Accurate / Partially accurate / Inaccurate
