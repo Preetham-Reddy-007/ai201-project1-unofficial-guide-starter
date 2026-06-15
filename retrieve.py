@@ -66,29 +66,37 @@ def retrieve(query: str, k: int = 5) -> List[Result]:
     return results
 
 
-def _print_results(query: str, results: List[Result], preview: int = 220) -> None:
+def _print_results(query: str, results: List[Result], preview: int = 600) -> None:
     print("\n" + "=" * 88)
     print(f"QUERY: {query}")
     print("=" * 88)
     for r in results:
-        snippet = " ".join(r.text.split())[:preview]
+        text = " ".join(r.text.split())  # collapse whitespace for tidy display
+        if preview and len(text) > preview:
+            text = text[:preview] + "..."  # mark truncation only when it happens
         print(f"\n#{r.rank}  sim={r.score:.3f}  {r.title}  ({r.source} #{r.chunk_index})")
-        print(f"    {snippet}...")
+        print(f"    {text}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Retrieve top-k chunks for a query.")
     parser.add_argument("query", nargs="*", help="Query text (omit to run eval set).")
     parser.add_argument("--k", type=int, default=5, help="Number of chunks (default 5).")
+    parser.add_argument(
+        "--preview",
+        type=int,
+        default=600,
+        help="Chars of each chunk to show (0 = full text). Default 600.",
+    )
     args = parser.parse_args()
 
     if args.query:
         q = " ".join(args.query)
-        _print_results(q, retrieve(q, k=args.k))
+        _print_results(q, retrieve(q, k=args.k), preview=args.preview)
     else:
         print(f"Running {len(EVAL_QUESTIONS)} evaluation questions (k={args.k})...")
         for q in EVAL_QUESTIONS:
-            _print_results(q, retrieve(q, k=args.k))
+            _print_results(q, retrieve(q, k=args.k), preview=args.preview)
 
 
 if __name__ == "__main__":
