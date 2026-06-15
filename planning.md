@@ -176,6 +176,24 @@ If this were a real product for verification engineers and cost weren't a constr
 
 **Milestone 3 — Ingestion and chunking:**
 
+- **Tool:** Claude Code (Claude Opus), driven by this `planning.md`.
+- **Input I gave it:** the *Chunking Strategy* and *Architecture* sections above, plus the requirement: "load every PDF in `documents/`, clean the text, and produce chunks matching the specified 500-token size and 100-token overlap, keeping source/chapter metadata."
+- **What it produced:** `ingest.py` — `pdfplumber` extraction, text cleaning, a token-aware recursive splitter (using the `all-MiniLM-L6-v2` tokenizer so chunk sizes match what the embedder sees), and `chunks.jsonl` output with `source`/`title`/`chunk_index`/`n_tokens` metadata.
+- **What I changed / directed differently:** The first run produced `(cid:NN)` garbage. I diagnosed it as subsetted fonts with no `ToUnicode` map and directed the AI to add **per-document glyph-shift auto-detection** (the Cookbook fonts are offset by 29) rather than hardcoding a shift, since the white paper and primer don't need one. After a checkpoint review of random chunks I also had it add: a **minimum-chunk merge** (the smallest chunk was an orphaned 38-token code tail), a **TOC dot-leader filter** (≈114 table-of-contents chunks from the primer), and a **repeated-license/comment-block filter** (9 near-duplicate Apache headers).
+- **How I verified it:** ran on all 15 PDFs (→ 966 chunks), printed 5 random chunks for readability/self-containment, and ran a corpus QA pass (0 empty, 0 residual cid, 0 TOC leaders, readable-char ratio = 1.0 per source).
+
 **Milestone 4 — Embedding and retrieval:**
 
+- **Tool:** Claude Code, driven by the *Retrieval Approach* section and the pipeline diagram.
+- **Input I gave it:** "embed `chunks.jsonl` with `all-MiniLM-L6-v2` via `sentence-transformers`, store in a persistent ChromaDB collection with source metadata, use cosine similarity, and write a `retrieve(query, k=5)` function that returns the top-k chunks with their source info."
+- **What it produced:** `vectorstore.py` (shared model + cosine-space config so indexing and querying can't diverge), `embed.py` (batch-embeds and rebuilds the collection idempotently), and `retrieve.py` (`retrieve()` + a CLI that runs the 5 eval questions).
+- **What I changed / directed differently:** I had it factor the model/embedding config into one shared module rather than duplicating `SentenceTransformer(...)` in both scripts — the classic RAG bug is indexing with one config and querying with another. I also had it set `hnsw:space=cosine` at collection creation and L2-normalize vectors, and convert Chroma's returned *distance* into a *similarity* (`1 - distance`) for readable scores.
+- **How I verified it:** built the index (966 vectors) and ran all 5 eval questions; retrieval returned relevant, correctly-attributed chunks (cosine similarity 0.50–0.78), with the right chapter ranking #1 or #2 for 4 of 5.
+
 **Milestone 5 — Generation and interface:**
+
+- **Tool:** Claude Code.
+- **Input I gave it:** the grounding requirement ("answer from retrieved context only, with source attribution"), the desired output format (answer + source list), the Groq `llama-3.3-70b-versatile` model from `.env`, and the Gradio Blocks skeleton.
+- **What it produced:** `query.py` — `ask(question, k=5)` that retrieves chunks, builds a numbered source-labeled context, calls Groq at `temperature=0`, and returns `{answer, sources, chunks}`; and `app.py` — a minimal Gradio UI (question → answer + retrieved sources).
+- **What I changed / directed differently:** I insisted grounding be **enforced, not suggested**, so I had it add two independent guards: (1) a **programmatic relevance gate** that returns the refusal string *without calling the LLM* when the best retrieved similarity is below a floor, and (2) a strict system prompt with a fixed refusal sentence. I also had source attribution built **in code** from the retrieved chunks (`_unique_sources`) instead of trusting the model to cite. I switched display separators to ASCII after the Windows console mojibached the em-dash/bullet, and pinned `huggingface-hub<1.0` to resolve a gradio/transformers conflict.
+- **How I verified it:** tested in-domain queries (grounded, cited answers), out-of-domain queries ("best pizza topping", "bake sourdough" → declined with no sources), and confirmed the Gradio server serves on `http://localhost:7860`. A short query ("What is UVM") exposed a retrieval limitation (the oversized UVM Connect primer floods top-k), which I recorded as a failure case for the README.
