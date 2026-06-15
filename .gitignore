@@ -16,5 +16,8 @@ env/
 chroma_db/
 chroma/
 
+# Generated chunk artifacts
+chunks.jsonl
+
 # macOS
 .DS_Store
